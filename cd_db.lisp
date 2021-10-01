@@ -29,13 +29,25 @@
 (defun artist-selector (artist)
   #'(lambda (cd) (equal (getf cd :artist) artist)))
 
-(defun where (&key title artist rating (ripped nil ripped-p))
-  #'(lambda (cd)
-      (and
-        (if title    (equal (getf cd :title) title) t)
-        (if artist   (equal (getf cd :artist) artist) t)
-        (if rating   (equal (getf cd :rating) rating) t)
-        (if ripped-p (equal (getf cd :ripped) ripped) t))))
+(defun make-comparison-expr (field value)
+  `(equal (getf cd ,field) ,value))
+
+(defun make-comparisons-list (fields)
+  (loop while fields
+     collecting (make-comparison-expr (pop fields) (pop fields))))
+
+(defmacro where (&rest clauses) ; &rest -> *args
+  ;; ,@ here upacks the result of make-comparisons-list so that the result is (and comp1 comp2 comp3).
+  ;; Without it the result would be (and (comp1 comp2 comp3))
+  `#'(lambda (cd) (and ,@(make-comparisons-list clauses))))  
+
+;; (defun where (&key title artist rating (ripped nil ripped-p))
+;;   #'(lambda (cd)
+;;       (and
+;;         (if title    (equal (getf cd :title) title) t)
+;;         (if artist   (equal (getf cd :artist) artist) t)
+;;         (if rating   (equal (getf cd :rating) rating) t)
+;;         (if ripped-p (equal (getf cd :ripped) ripped) t))))
 
 ;; (select (where :artist "Ed Sheeran"))
 (defun select (selector-fn)
@@ -83,3 +95,5 @@
 (load-db "~/Documents/lisp/db.txt")
 (format t "~a~%" *db*)
 
+
+(defmacro backwards (expr) (reverse expr))
