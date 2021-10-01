@@ -21,6 +21,42 @@
 (defun make-cd (title artist rating ripped)
   (list :title title :artist artist :rating rating :ripped ripped))
 
+(defun select-by-artist (artist)
+  (remove-if-not
+   #'(lambda (cd) (equal (getf cd :artist) artist))
+   *db*))
+
+(defun artist-selector (artist)
+  #'(lambda (cd) (equal (getf cd :artist) artist)))
+
+(defun where (&key title artist rating (ripped nil ripped-p))
+  #'(lambda (cd)
+      (and
+        (if title    (equal (getf cd :title) title) t)
+        (if artist   (equal (getf cd :artist) artist) t)
+        (if rating   (equal (getf cd :rating) rating) t)
+        (if ripped-p (equal (getf cd :ripped) ripped) t))))
+
+;; (select (where :artist "Ed Sheeran"))
+(defun select (selector-fn)
+  (remove-if-not selector-fn *db*))
+
+;; (update (where :artist "Ed Sheeran") :rating 11)
+(defun update (selector-fn &key title artist rating (ripped nil ripped-p))
+  (setf *db*
+        (mapcar
+         #'(lambda (row)
+             (when (funcall selector-fn row)
+               (if title    (setf (getf row :title) title))
+               (if artist   (setf (getf row :artist) artist))
+               (if rating   (setf (getf row :rating) rating))
+               (if ripped-p (setf (getf row :ripped) ripped)))
+             row) *db*)))
+
+;; (delete-rows (where :title "Hello"))
+(defun delete-rows (selector-fn)
+  (setf *db* (remove-if selector-fn *db*)))
+
 ;; (add-record (make-cd "Paris in the rain" "Lauv" 8 t))
 ;; (print-db)
 
